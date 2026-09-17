@@ -29,7 +29,7 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 
 SCRIPT_BASE64="$(base64 "${ENTRYPOINT}" | tr -d '\n')"
 
-cat > "${TMP_DIR}/main.go" <<EOF
+cat > "${TMP_DIR}/main.go" <<'EOF'
 package main
 
 import (
@@ -42,7 +42,7 @@ import (
 	"runtime"
 )
 
-const scriptBase64 = "${SCRIPT_BASE64}"
+const scriptBase64 = "__SCRIPT_BASE64__"
 
 func findBash() (string, error) {
 	if bashPath, err := exec.LookPath("bash"); err == nil {
@@ -54,10 +54,10 @@ func findBash() (string, error) {
 	}
 
 	candidates := []string{
-		`C:\Program Files\Git\bin\bash.exe`,
-		`C:\Program Files\Git\usr\bin\bash.exe`,
-		`C:\Program Files (x86)\Git\bin\bash.exe`,
-		`C:\Program Files (x86)\Git\usr\bin\bash.exe`,
+		"C:\\Program Files\\Git\\bin\\bash.exe",
+		"C:\\Program Files\\Git\\usr\\bin\\bash.exe",
+		"C:\\Program Files (x86)\\Git\\bin\\bash.exe",
+		"C:\\Program Files (x86)\\Git\\usr\\bin\\bash.exe",
 	}
 
 	for _, candidate := range candidates {
@@ -113,6 +113,14 @@ func main() {
 	}
 }
 EOF
+
+python - "${TMP_DIR}/main.go" "${SCRIPT_BASE64}" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+path.write_text(path.read_text().replace("__SCRIPT_BASE64__", sys.argv[2]))
+PY
 
 targets=(
   "darwin amd64"
