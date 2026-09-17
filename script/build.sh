@@ -7,18 +7,18 @@ ENTRYPOINT="${ROOT_DIR}/gh-repo-stats"
 RELEASE_TAG="${1:-dev}"
 REPOSITORY_NAME="${GITHUB_REPOSITORY##*/}"
 
-if [[ -z "${REPOSITORY_NAME}" || "${REPOSITORY_NAME}" == "${GITHUB_REPOSITORY}" ]]; then
-  REPOSITORY_NAME="$(basename "${ROOT_DIR}")"
+if [[ -z "${REPOSITORY_NAME}" || "${REPOSITORY_NAME}" == "${GITHUB_REPOSITORY:-}" ]]; then
+ REPOSITORY_NAME="$(basename "${ROOT_DIR}")"
 fi
 
 if [[ ! -f "${ENTRYPOINT}" ]]; then
-  echo "Expected extension entrypoint at ${ENTRYPOINT}" >&2
-  exit 1
+ echo "Expected extension entrypoint at ${ENTRYPOINT}" >&2
+ exit 1
 fi
 
 if ! command -v go >/dev/null 2>&1; then
-  echo "go is required to build release artifacts" >&2
-  exit 1
+ echo "go is required to build release artifacts" >&2
+ exit 1
 fi
 
 mkdir -p "${DIST_DIR}"
@@ -122,17 +122,22 @@ path = Path(sys.argv[1])
 path.write_text(path.read_text().replace("__SCRIPT_BASE64__", sys.argv[2]))
 PY
 
-targets=(
-  "darwin amd64"
-  "darwin arm64"
-  "linux amd64"
-  "linux arm64"
-  "windows amd64"
-  "windows arm64"
-)
+if [[ -n "${TARGETS:-}" ]]; then
+  read -r -a targets <<< "${TARGETS}"
+else
+  targets=(
+    "darwin-amd64"
+    "darwin-arm64"
+    "linux-amd64"
+    "linux-arm64"
+    "windows-amd64"
+    "windows-arm64"
+  )
+fi
 
 for target in "${targets[@]}"; do
-  read -r goos goarch <<< "${target}"
+  goos="${target%-*}"
+  goarch="${target#*-}"
 
   extension=""
   if [[ "${goos}" == "windows" ]]; then
